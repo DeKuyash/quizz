@@ -2,31 +2,20 @@
 --local function quizz_AddInfo(scroll, answer, question)
 
 local function quizz_AddInfo(scroll)
-    local answerButton = scroll:Add('DButton')
-    answerButton:Dock(TOP)
-    answerButton:DockMargin(5, 5, 100, 0)
-    answerButton:SetSize(100, 20)
-    --answerButton:SetText(answer)
-    answerButton.Paint = function(self, w, h)
+    local infoButton = scroll:Add('DButton')
+    infoButton:Dock(TOP)
+    infoButton:DockMargin(5, 5, 5, 0)
+    infoButton:SetSize(200, 20)
+    infoButton:SetText('Ответ | Вопрос')
+    --infoButton:SetText(answer .. '|' .. question)  + string.sub()
+    infoButton.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(77, 126, 155, 143))
     end
 
-    answerButton.DoClick = function()
+    infoButton.DoClick = function()
 
     end
 
-    local questionButton = scroll:Add('DButton')
-    questionButton:Dock(BOTTOM)
-    questionButton:DockMargin(100, 5, 5, 0)
-    questionButton:SetSize(100, 20)
-    --questionButton:SetText(question)
-    questionButton.Paint = function(self, w, h)
-        draw.RoundedBox(0, 0, 0, w, h, Color(77, 126, 155, 143))
-    end
-
-    answerButton.DoClick = function()
-
-    end
 
 end
 
