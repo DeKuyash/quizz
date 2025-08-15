@@ -1,5 +1,7 @@
 
 
+
+
 local function printWinners(answers, correctAnswer)
     local winners = {}
 
@@ -33,9 +35,10 @@ local function printWinners(answers, correctAnswer)
             multiAnswers = true
             finalMsg = finalMsg .. v .. ', '
 
-        end 
-
+        end
     end
+
+
     PrintMessage(HUD_PRINTTALK, finalMsg)
 end
 
@@ -66,4 +69,12 @@ hook.Add('PlayerSay', 'quizz.Start', function(ply, txt)
         startQuizz()
         return false
     end
+end)
+
+
+util.AddNetworkString('quizz_add.start')
+
+concommand.Add('quizz_add', function(ply)
+    net.Start('quizz_add.start')
+    net.Send(ply)
 end)
