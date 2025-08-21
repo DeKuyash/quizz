@@ -13,8 +13,10 @@ if not(file.Exists('quizz/config.txt', 'DATA')) then
     file.Write('quizz/config.txt', '')
 end
 
+quizz = quizz or {}
 
-function quizz_getData() -- из кфг в список
+
+function quizz.getData() -- из кфг в список
     local f = file.Read('quizz/config.txt', 'DATA')
     local newTbl = {}
 
@@ -34,32 +36,52 @@ function quizz_getData() -- из кфг в список
 end
 
 
-util.AddNetworkString('quizz_update.ToServer')
-util.AddNetworkString('quizz_update.ToClient')
+util.AddNetworkString('quizz.update.delete.toServer')
+util.AddNetworkString('quizz.update.save.toServer')
+util.AddNetworkString('quizz.update.toClient')
 
-function quizz_updateData(tbl) -- из списка в кфг
-    f = file.Open('quizz/config.txt', 'w', 'DATA')
-    f:Write('')
-    f:Close()
+function quizz.updateData(tbl) -- из списка в кфг
+    f = file.Write('quizz/config.txt', '')
     for answer, question in pairs(tbl) do
         file.Append('quizz/config.txt', "['" .. answer .. ';' .. question)
     end
 end
 
+quizz.questions = quizz.getData()
 
-quizz = quizz or {}
-quizz.questions = quizz_getData()
-
-
-net.Receive('quizz_update.ToServer', function()
-    local tableToUpd = net.ReadTable()
+net.Receive('quizz.update.save.toServer', function(len, selfPly)
+    local answer = net.ReadString()
+    local question = net.ReadString()
     local ply = net.ReadPlayer()
-    if isAdmin(ply) then
-        quizz_updateData(tableToUpd)
-        quizz.questions = quizz_getData()
+    if selfPly ~= ply then return end
 
-        net.Start('quizz_update.ToClient')
+    if isAdmin(ply) then
+        quizz.questions[answer] = question
+        quizz.updateData(quizz.questions)
+        quizz.questions = quizz.getData()
+    end
+end)
+
+net.Receive('quizz.update.delete.toServer', function(len, selfPly)
+    local value = net.ReadString()
+    local ply = net.ReadPlayer()
+    if selfPly ~= ply then return end
+
+    if isAdmin(ply) then
+        table.RemoveByValue(quizz.questions, value)
+        quizz.updateData(quizz.questions)
+        quizz.questions = quizz.getData()
+    end
+end)
+
+
+util.AddNetworkString('quizz.add.start')
+
+concommand.Add('quizz_add', function(ply)
+    if isAdmin(ply) then
+        net.Start('quizz.add.start')
+            quizz.question = quizz.getData()
             net.WriteTable(quizz.questions)
-        net.Send(ply)
+        net.Send(ply)  
     end
 end)

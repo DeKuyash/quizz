@@ -96,15 +96,10 @@ local function quizz_CreateMenu()
 
     deleteButton.DoClick = function()
         if actualButton ~= nil then
-            table.RemoveByValue(quizz.questions, questionEntry:GetValue())
-            net.Start('quizz_update.ToServer')
-                net.WriteTable(quizz.questions)
+            net.Start('quizz.update.delete.toServer')
+                net.WriteString(questionEntry:GetValue())
                 net.WritePlayer(LocalPlayer())
             net.SendToServer()
-
-            net.Receive('quizz_update.ToClient', function()
-                quizz.questions = net.ReadTable()
-            end)
 
             answerEntry:SetValue('')
             questionEntry:SetValue('')
@@ -123,19 +118,14 @@ local function quizz_CreateMenu()
     end
 
     saveButton.DoClick = function()
-        if actualButton ~= nil then
-            quizz.questions[answerEntry:GetValue()] = questionEntry:GetValue()
-            net.Start('quizz_update.ToServer')
-                net.WriteTable(quizz.questions)
+        if actualButton ~= nil and string.Trim(answerEntry:GetValue()) ~= '' or string.Trim(questionEntry:GetValue()) ~= '' then
+            net.Start('quizz.update.save.toServer')
+                net.WriteString(answerEntry:GetValue())
+                net.WriteString(questionEntry:GetValue())
                 net.WritePlayer(LocalPlayer())
             net.SendToServer()
 
-            net.Receive('quizz_update.ToClient', function()
-                quizz.questions = net.ReadTable()
-            end)
-
             actualButton:SetText(answerEntry:GetValue() .. ' | ' .. questionEntry:GetValue())
-
         end
     end
 
@@ -149,7 +139,7 @@ local function quizz_CreateMenu()
 end
 
 
-net.Receive('quizz_add.start', function()
+net.Receive('quizz.add.start', function()
     quizz.questions = net.ReadTable()
     quizz_CreateMenu()
 end)

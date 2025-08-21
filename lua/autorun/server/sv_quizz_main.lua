@@ -1,6 +1,6 @@
 
 
-timeToAnswer = timeToAnswer or 5
+timeToAnswer = timeToAnswer or 8
 
 local function printWinners(answers, correctAnswer)
     local winners = {}
@@ -10,82 +10,100 @@ local function printWinners(answers, correctAnswer)
         return
     end
 
-    for name, answ in pairs(answers) do
+    for ply, answ in pairs(answers) do
         if answ == correctAnswer then
-            table.insert(winners, name)
+            winners[#winners+1] = ply
         end
     end
 
-    local count = table.Count(winners)
-    local multiAnswers = false
-    
+    local count = #winners
     local finalMsg = 'Игроки '
+    local winnersName = {}
+
+    for k, v in ipairs(winners) do 
+        winnersName[k] = v:Nick()
+    end
 
     if count == 0 then
         finalMsg = 'Никто не дал правильного ответа, правильный ответ был: ' .. correctAnswer .. '.'
+        PrintMessage(HUD_PRINTTALK, finalMsg)
+        return
     end
 
-    for _, v in ipairs(winners) do
-        if count == 1 and !multiAnswers then
-            finalMsg = 'Игрок ' .. v .. ' дал правильный ответ: ' .. correctAnswer .. '.'
-        
-        elseif count == 1 and multiAnswers then
-            finalMsg = string.sub(finalMsg, 1, string.len(finalMsg)-2)
-            finalMsg = finalMsg .. ' и ' .. v .. ' дали правильные ответы! Ответ был: ' .. correctAnswer .. '.'
-
-        end
-
-        if count > 1 then
-            count = count - 1
-            multiAnswers = true
-            finalMsg = finalMsg .. v .. ', '
-
-        end
+    if count == 1 then
+        finalMsg = 'Игрок ' .. winnersName[1] .. ' дал правильный ответ: ' .. correctAnswer .. '.'
+        PrintMessage(HUD_PRINTTALK, finalMsg)
+        return
     end
 
+    finalMsg = finalMsg .. table.concat(winnersName, ', ', 1, #winnersName - 1)
+    finalMsg = finalMsg .. ' и ' .. winnersName[#winnersName] .. ' дали правильный ответ: ' .. correctAnswer .. '.'
 
     PrintMessage(HUD_PRINTTALK, finalMsg)
+    --return winners    -- возвращаю список победителей в виде player, чтобы в дальнейшем выдать награду
 end
 
-
-local function startQuizz()
-    local question, answer = table.Random(quizz.questions)    
+-- string, string, function
+function quizz.startQuizz(question, answer, mode)
+    if quizz.getStarted == true then return end
     local plyAnswer = {}
-    plyAnswer = { -- симуляция того, что ответ дают несколько игроков
-        ['chelog'] = answer,
-        ['Walther White'] = answer
-    }
 
-    if question == nil or answer == nil then return end
+    if mode == nil then 
+        if question == nil or answer == nil then return end
 
-    PrintMessage(HUD_PRINTTALK, 'Викторина начинается! Давайте ответ в формате: "слово"')
-    PrintMessage(HUD_PRINTTALK, question)    
+        quizz.getStarted = true
+        PrintMessage(HUD_PRINTTALK, 'Викторина начинается! Давайте ответ в формате: "слово"')
+        PrintMessage(HUD_PRINTTALK, question)    
 
-    hook.Add('PlayerSay', 'quizz.Answers', function(ply, txt)
-        plyAnswer[ply:Nick()] = string.Trim(txt)
-    end)
+        hook.Add('PlayerSay', 'quizz.answers', function(ply, txt)
+            plyAnswer[ply] = string.Trim(txt)
+        end)
 
-    timer.Simple(timeToAnswer, function()
-        hook.Remove('PlayerSay', 'quizz.Answers')         
-        printWinners(plyAnswer, answer)     
-    end)
+        timer.Simple(timeToAnswer, function()
+            hook.Remove('PlayerSay', 'quizz.answers')
+            quizz.getStarted = false  
+            printWinners(plyAnswer, answer)     
+        end)
+
+    else
+        answer, question = mode()
+        if question == nil or answer == nil then return end
+
+        quizz.getStarted = true
+        PrintMessage(HUD_PRINTTALK, 'Викторина начинается! Давайте ответ в формате: "слово"')
+        PrintMessage(HUD_PRINTTALK, question)    
+
+        hook.Add('PlayerSay', 'quizz.answers', function(ply, txt)
+            plyAnswer[ply] = string.Trim(txt)
+        end)
+
+        timer.Simple(timeToAnswer, function()
+            hook.Remove('PlayerSay', 'quizz.answers')
+            quizz.getStarted = false  
+            PrintTable(plyAnswer)
+            printWinners(plyAnswer, answer)     
+        end)
+
+    end
 end
 
 
-hook.Add('PlayerSay', 'quizz.Start', function(ply, txt)
-    if string.Trim(string.lower(txt)) == '!start' then
-        startQuizz()
+hook.Add('PlayerSay', 'quizz.start', function(ply, txt)
+    if not isAdmin(ply) then return false end
+
+    if string.sub(string.Trim(string.lower(txt)), 1, 6) == '!start' then
+        local mode = string.Trim(string.sub(txt, 7))
+        if mode == '' then
+            local question, answer = table.Random(quizz.question)
+            quizz.startQuizz(question, answer, nil)
+
+        else
+            if quizz.modes[mode] == nil then return false end
+
+            quizz.startQuizz('', '', quizz.modes[mode])
+
+        end
+
         return false
-    end
-end)
-
-
-util.AddNetworkString('quizz_add.start')
-
-concommand.Add('quizz_add', function(ply)
-    if isAdmin(ply) then
-        net.Start('quizz_add.start')
-            net.WriteTable(quizz.questions)
-        net.Send(ply)  
     end
 end)
