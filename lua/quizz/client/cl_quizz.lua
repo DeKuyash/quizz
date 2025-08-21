@@ -118,10 +118,13 @@ local function quizz_CreateMenu()
     end
 
     saveButton.DoClick = function()
-        if actualButton ~= nil and string.Trim(answerEntry:GetValue()) ~= '' or string.Trim(questionEntry:GetValue()) ~= '' then
+        if actualButton == nil then return end
+        if string.Trim(answerEntry:GetValue()) ~= '' or string.Trim(questionEntry:GetValue()) ~= '' then
+            local answ = string.Trim(answerEntry:GetValue())
+            local quest = string.Trim(questionEntry:GetValue())
             net.Start('quizz.update.save.toServer')
-                net.WriteString(answerEntry:GetValue())
-                net.WriteString(questionEntry:GetValue())
+                net.WriteString(answ)
+                net.WriteString(quest)
                 net.WritePlayer(LocalPlayer())
             net.SendToServer()
 

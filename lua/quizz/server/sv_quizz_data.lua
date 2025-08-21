@@ -8,46 +8,42 @@ function isAdmin(ply)
 end
 
 
-if not(file.Exists('quizz/config.txt', 'DATA')) then
+if not(file.Exists('quizz/quizz_cfg.json', 'DATA')) then
     file.CreateDir('quizz')
-    file.Write('quizz/config.txt', '')
+    file.Write('quizz/quizz_cfg.json', '[]')
 end
+
+
 
 quizz = quizz or {}
 
-
-function quizz.getData() -- из кфг в список
-    local f = file.Read('quizz/config.txt', 'DATA')
-    local newTbl = {}
-
-    while f ~= '' do
-        local startTo = string.find(f, "[%['%g+%p%g+]") -- ['кот;Кент?['
-        local endTo = string.find(f, "[%['%g+%p%g+]%[") 
-        local data = string.sub(f, startTo, endTo) -- ['кот;Кент?
-        f = string.Replace(f, data, '') -- вырезаем первую пару
-        data = string.sub(data, 3) -- кот; Кент?
-        local pointStart = string.find(data, '%p')
-        local answer = string.sub(data, 1, pointStart-1) -- кот
-        local question = string.sub(data, pointStart+1) -- Кент?
-        newTbl[answer] = question
-    end
-
-    return newTbl
-end
 
 
 util.AddNetworkString('quizz.update.delete.toServer')
 util.AddNetworkString('quizz.update.save.toServer')
 util.AddNetworkString('quizz.update.toClient')
 
-function quizz.updateData(tbl) -- из списка в кфг
-    f = file.Write('quizz/config.txt', '')
-    for answer, question in pairs(tbl) do
-        file.Append('quizz/config.txt', "['" .. answer .. ';' .. question)
-    end
+function quizz.getData()
+    local f = file.Read('quizz/quizz_cfg.json', 'DATA')
+    local newTbl = util.JSONToTable(f)
+
+    return newTbl
+
 end
 
+function quizz.updateData(tbl)
+    if tbl == nil then
+        file.Write('quizz/quizz_cfg.json', '[]')
+    end
+
+    local f = util.TableToJSON(tbl)
+    file.Write('quizz/quizz_cfg.json', f)
+
+end
+
+
 quizz.questions = quizz.getData()
+
 
 net.Receive('quizz.update.save.toServer', function(len, selfPly)
     local answer = net.ReadString()
@@ -81,7 +77,7 @@ concommand.Add('quizz_add', function(ply)
     if isAdmin(ply) then
         net.Start('quizz.add.start')
             quizz.question = quizz.getData()
-            net.WriteTable(quizz.questions)
+            net.WriteTable(quizz.questions or {})
         net.Send(ply)  
     end
 end)

@@ -94,7 +94,7 @@ hook.Add('PlayerSay', 'quizz.start', function(ply, txt)
     if string.sub(string.Trim(string.lower(txt)), 1, 6) == '!start' then
         local mode = string.Trim(string.sub(txt, 7))
         if mode == '' then
-            local question, answer = table.Random(quizz.question)
+            local question, answer = table.Random(quizz.question or {})
             quizz.startQuizz(question, answer, nil)
 
         else
